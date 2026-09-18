@@ -222,6 +222,22 @@ footer{text-align:center;margin-top:22px;font-size:.72rem;color:var(--muted);}
       </div>
       <label>Notas (opcional)</label>
       <textarea id="fNotes" placeholder="Local, adversário, o que é preciso levar..."></textarea>
+
+      <div id="gameFields" style="display:none;">
+        <label>Tipo de jogo</label>
+        <div class="cat-row" id="gameTypeRow">
+          <button type="button" class="cat-chip" data-type="treino">Treino</button>
+          <button type="button" class="cat-chip" data-type="campeonato">Campeonato</button>
+        </div>
+        <label>Resultado (depois do jogo)</label>
+        <div class="time-row">
+          <div><input type="number" id="fScoreUs" min="0" placeholder="ELA"></div>
+          <div><input type="number" id="fScoreThem" min="0" placeholder="Adversário"></div>
+        </div>
+        <label>Golos do Tomás</label>
+        <input type="number" id="fTomasGoals" min="0" placeholder="0">
+      </div>
+
       <div class="form-err" id="formErr"></div>
       <div class="form-actions">
         <button id="fCancel">Cancelar</button>
@@ -496,7 +512,12 @@ const formErr = document.getElementById('formErr');
 const fSave = document.getElementById('fSave');
 const fCancel = document.getElementById('fCancel');
 const fDelete = document.getElementById('fDelete');
-let editingEventId = null, selectedCat = 'outro';
+const gameFields = document.getElementById('gameFields');
+const gameTypeRow = document.getElementById('gameTypeRow');
+const fScoreUs = document.getElementById('fScoreUs');
+const fScoreThem = document.getElementById('fScoreThem');
+const fTomasGoals = document.getElementById('fTomasGoals');
+let editingEventId = null, selectedCat = 'outro', selectedGameType = '';
 let allEvents = [];
 
 Object.entries(CATEGORIES).forEach(([key, c])=>{
@@ -505,6 +526,18 @@ Object.entries(CATEGORIES).forEach(([key, c])=>{
   b.addEventListener('click', ()=>selectCat(key));
   catRow.appendChild(b);
 });
+[...gameTypeRow.children].forEach(b=>{
+  b.addEventListener('click', ()=>selectGameType(b.dataset.type));
+});
+function selectGameType(type){
+  selectedGameType = type;
+  [...gameTypeRow.children].forEach(b=>{
+    const isSel = b.dataset.type===type;
+    b.classList.toggle('selected', isSel);
+    b.style.background = isSel ? CATEGORIES.hoquei_jogo.color : 'transparent';
+    b.style.borderColor = isSel ? CATEGORIES.hoquei_jogo.color : '';
+  });
+}
 function selectCat(key){
   selectedCat = key;
   [...catRow.children].forEach(b=>{
@@ -513,6 +546,7 @@ function selectCat(key){
     b.style.background = isSel ? CATEGORIES[key].color : 'transparent';
     b.style.borderColor = isSel ? CATEGORIES[key].color : '';
   });
+  gameFields.style.display = (key==='hoquei_jogo') ? 'block' : 'none';
 }
 function openForm(prefill){
   formErr.style.display='none';
@@ -524,11 +558,17 @@ function openForm(prefill){
     fStart.value = prefill.startTime || '';
     fEnd.value = prefill.endTime || '';
     fNotes.value = prefill.notes || '';
+    selectGameType(prefill.gameType || '');
+    fScoreUs.value = prefill.scoreUs ?? '';
+    fScoreThem.value = prefill.scoreThem ?? '';
+    fTomasGoals.value = prefill.tomasGoals ?? '';
     fDelete.style.display = 'block';
   } else {
     editingEventId = null;
     selectCat('outro');
     fTitle.value = ''; fNotes.value = ''; fStart.value=''; fEnd.value='';
+    selectGameType('');
+    fScoreUs.value=''; fScoreThem.value=''; fTomasGoals.value='';
     const t = new Date(); t.setDate(t.getDate()+1);
     fDate.value = toYMD(t);
     fDelete.style.display = 'none';
@@ -544,7 +584,13 @@ fSave.addEventListener('click', async ()=>{
   const date = fDate.value;
   if(!title){ formErr.textContent='Falta o título.'; formErr.style.display='block'; return; }
   if(!date){ formErr.textContent='Falta a data.'; formErr.style.display='block'; return; }
-  const body = { category: selectedCat, title, date, startTime: fStart.value||'', endTime: fEnd.value||'', notes: fNotes.value.trim() };
+  const body = {
+    category: selectedCat, title, date, startTime: fStart.value||'', endTime: fEnd.value||'', notes: fNotes.value.trim(),
+    gameType: selectedCat==='hoquei_jogo' ? (selectedGameType||null) : null,
+    scoreUs: (selectedCat==='hoquei_jogo' && fScoreUs.value!=='') ? parseInt(fScoreUs.value,10) : null,
+    scoreThem: (selectedCat==='hoquei_jogo' && fScoreThem.value!=='') ? parseInt(fScoreThem.value,10) : null,
+    tomasGoals: (selectedCat==='hoquei_jogo' && fTomasGoals.value!=='') ? parseInt(fTomasGoals.value,10) : null
+  };
   fSave.disabled = true;
   try {
     if(editingEventId){ await db.collection('events').doc(editingEventId).update(body); }
@@ -614,13 +660,21 @@ function renderEvents(){
 }
 function eventCardHtml(ev){
   const cat = CATEGORIES[ev.category] || CATEGORIES.outro;
+  const tipoLabel = ev.gameType === 'campeonato' ? 'Campeonato' : ev.gameType === 'treino' ? 'Jogo treino' : '';
+  const temResultado = ev.scoreUs !== null && ev.scoreUs !== undefined && ev.scoreThem !== null && ev.scoreThem !== undefined;
+  let resultadoHtml = '';
+  if(temResultado){
+    const golos = (ev.tomasGoals!==null && ev.tomasGoals!==undefined && ev.tomasGoals>0) ? ` · Tomás: ${ev.tomasGoals} golo${ev.tomasGoals===1?'':'s'}` : '';
+    resultadoHtml = `<div class="ev-notes"><b style="color:var(--text)">Resultado: ${ev.scoreUs}–${ev.scoreThem}</b>${golos}</div>`;
+  }
   return `<div class="ev-card${canWrite?' editable':''}" data-id="${ev.id}">
     <div class="ev-bar" style="background:${cat.color}"></div>
     <div class="ev-body">
-      <div class="ev-cat" style="color:${cat.color}">${cat.label}</div>
+      <div class="ev-cat" style="color:${cat.color}">${cat.label}${tipoLabel?` · ${tipoLabel}`:''}</div>
       <div class="ev-title">${escapeHtml(ev.title)}</div>
       <div class="ev-when">${formatWhen(ev)}</div>
       ${ev.notes ? `<div class="ev-notes">${escapeHtml(ev.notes)}</div>` : ''}
+      ${resultadoHtml}
     </div>
   </div>`;
 }
