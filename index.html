@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hub do Tomás</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#f3ede0; --mustard:#e0a63a; --coral:#e0653f; --cream:#14181d;
+  --leaf:#5c7a5e; --teal:#3d7a8c;
+  --line: rgba(243,237,224,.14); --text: var(--navy); --muted: #a9a599;
+  --card-bg: #1e242b; --bg: var(--cream); --danger:#a3352d;
+  --warn-bg:#3a2e1c; --warn-text:#e0b878;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;overflow-x:hidden;}
+body{
+  background:var(--bg); color:var(--text); font-family:'Karla', system-ui, sans-serif;
+  min-height:100vh; -webkit-font-smoothing:antialiased;
+  padding: max(20px, env(safe-area-inset-top)) 18px max(40px, env(safe-area-inset-bottom));
+}
+.wrap{max-width:480px;margin:0 auto;}
+header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;}
+.brand{font-family:'Fraunces', serif;font-weight:600;font-size:1.15rem;letter-spacing:-0.01em;}
+.brand span{color:var(--coral);}
+.school{font-size:.78rem;color:var(--muted);}
+
+.tabs{display:flex;gap:4px;background:var(--card-bg);border:1px solid var(--line);border-radius:999px;padding:4px;margin-bottom:16px;overflow-x:auto;}
+@keyframes fadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+.tabs button{flex:1;min-width:0;border:none;background:transparent;color:var(--muted);font-family:'Karla',sans-serif;font-weight:600;font-size:.78rem;padding:9px 4px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:background .18s ease, color .18s ease;}
+.tabs button.active{background:var(--navy);color:var(--cream);}
+.panel{display:none;}
+.panel.active{display:block; animation:fadeIn .22s ease;}
+
+.toggle{display:flex;gap:6px;background:var(--card-bg);border:1px solid var(--line);border-radius:999px;padding:4px;margin-bottom:16px;}
+.toggle button{flex:1;border:none;background:transparent;color:var(--muted);font-family:'Karla',sans-serif;font-weight:600;font-size:.85rem;padding:9px 0;border-radius:999px;cursor:pointer;transition:background .18s ease, color .18s ease;}
+.toggle button.active{background:var(--navy);color:var(--cream);}
+
+.warn-banner{background:var(--warn-bg);color:var(--warn-text);border-radius:12px;padding:11px 14px;font-size:.8rem;line-height:1.4;margin-bottom:14px;display:none;}
+.warn-banner.show{display:block;}
+
+.daycard{background:var(--card-bg);border:1px solid var(--line);border-radius:22px;padding:22px 20px 18px;animation:fadeIn .22s ease;}
+.daylabel{font-size:.72rem;font-weight:600;color:var(--coral);text-transform:lowercase;margin-bottom:2px;}
+.daytitle{font-family:'Fraunces', serif;font-weight:600;font-size:1.5rem;line-height:1.15;margin:0 0 2px;}
+.daydate{font-size:.82rem;color:var(--muted);margin-bottom:18px;}
+.dish{padding:13px 0;border-top:1px solid var(--line);display:flex;gap:12px;}
+.dish:first-of-type{border-top:none;}
+.dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none;}
+.dot.sopa{background:var(--leaf);} .dot.medit{background:var(--coral);}
+.dot.veg{background:var(--mustard);} .dot.salada{background:var(--leaf);} .dot.sobremesa{background:var(--muted);}
+.dish-body{flex:1;min-width:0;}
+.dish-kind{font-size:.72rem;font-weight:600;color:var(--muted);margin-bottom:2px;}
+.dish-name{font-size:.98rem;line-height:1.35;}
+.aller{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:.76rem;color:var(--muted);line-height:1.5;}
+.aller b{color:var(--text);font-weight:600;}
+.empty{text-align:center;padding:48px 20px;color:var(--muted);font-size:.95rem;}
+.empty .big{font-family:'Fraunces',serif;font-size:1.3rem;color:var(--text);margin-bottom:6px;}
+
+.status-line{font-size:.78rem;color:var(--muted);margin-bottom:14px;line-height:1.5;}
+.add-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--navy);color:var(--cream);border:none;border-radius:14px;padding:13px;font-family:'Karla',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;margin-bottom:16px;transition:opacity .15s ease, transform .1s ease;}
+.add-btn:active{opacity:.85;}
+
+.form-card{background:var(--card-bg);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:18px;display:none;}
+.form-card.open{display:block; animation:fadeIn .2s ease;}
+.form-card label{display:block;font-size:.74rem;font-weight:600;color:var(--muted);margin:12px 0 5px;}
+.form-card label:first-child{margin-top:0;}
+.cat-row{display:flex;flex-wrap:wrap;gap:6px;}
+.cat-chip{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-size:.76rem;font-weight:600;cursor:pointer;color:var(--text);transition:background .15s ease, border-color .15s ease;}
+.cat-chip.selected{border-color:transparent;color:#fff;}
+.form-card input[type=text], .form-card input[type=date], .form-card input[type=time], .form-card select, .form-card textarea{
+  width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:'Karla',sans-serif;
+  font-size:.92rem;background:var(--bg);color:var(--text);
+}
+.time-row{display:flex;gap:10px;}
+.time-row > div{flex:1;}
+.form-card textarea{resize:vertical;min-height:52px;}
+.check-row{display:flex;align-items:center;gap:8px;margin-top:14px;}
+.check-row input{width:18px;height:18px;}
+.check-row label{margin:0;font-size:.86rem;font-weight:600;color:var(--text);}
+.form-actions{display:flex;gap:10px;margin-top:16px;}
+.form-actions button{flex:1;border-radius:10px;padding:11px;font-family:'Karla',sans-serif;font-weight:600;font-size:.86rem;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--text);}
+.form-actions .save{background:var(--navy);color:var(--cream);border-color:var(--navy);}
+.form-actions .del{color:var(--danger);border-color:var(--danger);}
+.form-err{color:var(--danger);font-size:.78rem;margin-top:8px;display:none;}
+
+.group-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px;}
+.group-label:first-child{margin-top:0;}
+.ev-card{background:var(--card-bg);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:8px;display:flex;gap:11px;cursor:default;animation:fadeIn .2s ease;}
+.ev-card.editable{cursor:pointer;}
+.ev-bar{width:4px;border-radius:4px;flex:none;}
+.ev-body{flex:1;min-width:0;}
+.ev-cat{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px;}
+.ev-title{font-size:.94rem;font-weight:600;line-height:1.3;}
+.ev-when{font-size:.78rem;color:var(--muted);margin-top:2px;}
+.ev-notes{font-size:.8rem;color:var(--muted);margin-top:4px;line-height:1.4;}
+.badge{display:inline-block;font-size:.68rem;font-weight:600;padding:2px 8px;border-radius:999px;margin-top:5px;}
+.badge.urgent{background:var(--danger);color:#fff;}
+.badge.soon{background:var(--mustard);color:#4a3208;}
+.badge.done{background:var(--leaf);color:#fff;}
+
+.past-toggle{background:transparent;border:none;color:var(--muted);font-size:.8rem;font-family:'Karla',sans-serif;text-decoration:underline;padding:8px 0;cursor:pointer;}
+footer{text-align:center;margin-top:22px;font-size:.72rem;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Hub <span>Tomás</span></div>
+    <div class="school">São João da Madeira</div>
+  </header>
+
+  <div class="tabs">
+    <button id="tabEmenta" class="active">Ementa</button>
+    <button id="tabHorario">Horário</button>
+    <button id="tabAgenda">Agenda</button>
+    <button id="tabAnos">Anos</button>
+  </div>
+
+  <!-- EMENTA -->
+  <div id="panelEmenta" class="panel active">
+    <div id="ementaWarn" class="warn-banner"></div>
+    <div class="toggle">
+      <button id="btnHoje">Hoje</button>
+      <button id="btnAmanha" class="active">Amanhã</button>
+    </div>
+    <div id="ementaContent"></div>
+    <footer>Toca em "Hoje" ou "Amanhã" · dados da Uniself</footer>
+  </div>
+
+  <!-- HORARIO -->
+  <div id="panelHorario" class="panel">
+    <div id="horarioStatus" class="status-line"></div>
+    <button id="addHorarioBtn" class="add-btn" style="display:none;">+ Adicionar aula</button>
+
+    <div id="horarioForm" class="form-card">
+      <label>Dia</label>
+      <select id="hDay">
+        <option value="Segunda">Segunda</option>
+        <option value="Terça">Terça</option>
+        <option value="Quarta">Quarta</option>
+        <option value="Quinta">Quinta</option>
+        <option value="Sexta">Sexta</option>
+      </select>
+      <label>Hora</label>
+      <div class="time-row">
+        <div><input type="time" id="hStart"></div>
+        <div><input type="time" id="hEnd"></div>
+      </div>
+      <label>Disciplina</label>
+      <input type="text" id="hSubject" placeholder="Matemática, Educação Física...">
+      <div class="form-err" id="hErr"></div>
+      <div class="form-actions">
+        <button id="hCancel">Cancelar</button>
+        <button id="hDelete" class="del" style="display:none;">Apagar</button>
+        <button id="hSave" class="save">Guardar</button>
+      </div>
+    </div>
+
+    <div id="horarioList"></div>
+  </div>
+
+  <!-- AGENDA -->
+  <div id="panelAgenda" class="panel">
+    <div id="hoqueiWarn" class="warn-banner"></div>
+    <div id="agendaStatus" class="status-line"></div>
+    <button id="addBtn" class="add-btn" style="display:none;">+ Adicionar evento</button>
+
+    <div id="formCard" class="form-card">
+      <label>Categoria</label>
+      <div id="catRow" class="cat-row"></div>
+      <label>Título</label>
+      <input type="text" id="fTitle" placeholder="Treino, jogo, aula, teste...">
+      <label>Data</label>
+      <input type="date" id="fDate">
+      <label>Hora (opcional)</label>
+      <div class="time-row">
+        <div><input type="time" id="fStart"></div>
+        <div><input type="time" id="fEnd"></div>
+      </div>
+      <label>Notas (opcional)</label>
+      <textarea id="fNotes" placeholder="Local, adversário, o que é preciso levar..."></textarea>
+      <div class="form-err" id="formErr"></div>
+      <div class="form-actions">
+        <button id="fCancel">Cancelar</button>
+        <button id="fDelete" class="del" style="display:none;">Apagar</button>
+        <button id="fSave" class="save">Guardar</button>
+      </div>
+    </div>
+
+    <div id="eventsList"></div>
+  </div>
+
+  <!-- ANIVERSARIOS -->
+  <div id="panelAnos" class="panel">
+    <div id="anosWarn" class="warn-banner"></div>
+    <div id="anosStatus" class="status-line"></div>
+    <button id="addAnoBtn" class="add-btn" style="display:none;">+ Adicionar aniversário</button>
+
+    <div id="anoForm" class="form-card">
+      <label>Nome do colega</label>
+      <input type="text" id="aName" placeholder="Nome">
+      <label>Data de nascimento (o ano não importa, é só para escolheres dia e mês)</label>
+      <input type="date" id="aBirth">
+      <label>Data da festa este ano, se for diferente (opcional)</label>
+      <input type="date" id="aParty">
+      <label>Este ano há festa? Responder até (opcional)</label>
+      <input type="date" id="aRsvp">
+      <label>Notas (opcional)</label>
+      <textarea id="aNotes" placeholder="Local, prenda, contacto dos pais..."></textarea>
+      <div class="check-row">
+        <input type="checkbox" id="aResponded">
+        <label for="aResponded">Já respondi</label>
+      </div>
+      <div class="form-err" id="aErr"></div>
+      <div class="form-actions">
+        <button id="aCancel">Cancelar</button>
+        <button id="aDelete" class="del" style="display:none;">Apagar</button>
+        <button id="aSave" class="save">Guardar</button>
+      </div>
+    </div>
+
+    <div id="anosList"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const DIAS = ["Segunda","Terça","Quarta","Quinta","Sexta"];
+const MESES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const DIAS_CURTO = ["dom","seg","ter","qua","qui","sex","sáb"];
+
+const WEEKS = [
+{ start:"2026-09-07", days:[
+  {sopa:"Sopa de couve", medit:"Bifana com batata cozida", veg:"Seitan com molho de cebolada e batata cozida", salada:"Cenoura, brócolos e couve flor", sobremesa:"Fruta da época", aller:"seitan (glúten, soja); vinagre (sulfitos)"},
+  {sopa:"Sopa de nabo e abóbora", medit:"Massada de cavala (lombo de cavala com massa cotovelo)", veg:"Cogumelos estufados com feijão branco e alho francês, massa", salada:"Tomate, beterraba e pepino", sobremesa:"Gelatina vegetal de tutti frutti e fruta da época", aller:"massa (glúten); cavala; cogumelos (sulfitos); vinagre (sulfitos); gelatina (sulfitos)"},
+  {sopa:"Sopa de lentilhas", medit:"Bife de frango grelhado com molho de cogumelos e arroz de ervilhas e cenoura", veg:"Bife de tofu grelhado com molho de cogumelos e arroz de ervilhas e cenoura", salada:"Alface e tomate", sobremesa:"Fruta da época", aller:"cogumelos (sulfitos); tofu (soja); vinagre (sulfitos)"},
+  {sopa:"Sopa de nabo", medit:"Paloco à gomes de sá com ovo", veg:"Jardineira de tofu (tofu, batata, cenoura, brócolos, ervilhas e feijão verde)", salada:"Cenoura, brócolos e couve flor", sobremesa:"Fruta da época", aller:"paloco; ovo; tofu (soja); vinagre (sulfitos)"},
+  {sopa:"Sopa de cenoura e couve coração", medit:"Esparguete à bolonhesa", veg:"Bolonhesa vegetariana (soja, cogumelos, cenoura, alho francês e esparguete)", salada:"Alface e tomate", sobremesa:"Fruta da época", aller:"esparguete (glúten); carne picada (glúten, soja, sulfitos); soja; cogumelos (sulfitos); vinagre (sulfitos)"}
+]},
+{ start:"2026-09-14", days:[
+  {sopa:"Sopa de cenoura", medit:"Atum, feijão frade, arroz e ovo", veg:"Salada de feijão fradinho com cenoura, milho e arroz", salada:"Tomate, beterraba e milho", sobremesa:"Fruta da época", aller:"atum; ovo; vinagre (sulfitos)"},
+  {sopa:"Sopa de feijão verde", medit:"Perna de frango assada com massa macarronete", veg:"Legumes estufados com cogumelos e feijão vermelho com massa macarronete", salada:"Alface, couve roxa e couve coração", sobremesa:"Fruta da época", aller:"massa (glúten); cogumelos (sulfitos); vinagre (sulfitos)"},
+  {sopa:"Sopa de alho francês e cenoura", medit:"Filete de pescada no forno com salada russa (batata, cenoura e ervilha) e ovo laminado", veg:"Filetes de seitan no forno, com crosta de farinha de milho e arroz de tomate", salada:"Ervilha, feijão verde e cenoura", sobremesa:"Fruta da época", aller:"pescada; ovo; seitan (glúten, soja); vinagre (sulfitos)"},
+  {sopa:"Sopa de abóbora", medit:"Perna de peru laminada com massa espiral e feijão branco", veg:"Soja estufada com ervilhas, massa esparguete cozida e salada de pepino, couve roxa e pimento", salada:"Tomate, pepino e alface", sobremesa:"Fruta da época", aller:"massa (glúten); soja; vinagre (sulfitos)"},
+  {sopa:"Sopa de feijão vermelho", medit:"Filete de escamudo gratinado com molho de tomate e arroz", veg:"Tofu gratinado com legumes, molho de tomate e arroz", salada:"Brócolos e couve flor", sobremesa:"Fruta da época", aller:"escamudo; tofu (soja); vinagre (sulfitos)"}
+]},
+{ start:"2026-09-21", days:[
+  {sopa:"Sopa de couve coração", medit:"Perninha de frango estufada com ervilha e cenoura e massa cotovelo", veg:"Soja estufada com feijão catarino, ervilha, cenoura e curgete", salada:"Couve roxa, couve coração e alface", sobremesa:"Fruta da época", aller:"soja; vinagre (sulfitos)"},
+  {sopa:"Sopa de brócolos", medit:"Pataniscas de paloco com arroz de feijão vermelho", veg:"Patanisca de legumes (lentilha, cenoura, curgete e alho francês) com arroz de feijão vermelho", salada:"Alface, tomate e pepino", sobremesa:"Fruta da época", aller:"paloco; vinagre (sulfitos)"},
+  {sopa:"Sopa de couve flor", medit:"Cozido simples (carne de vaca, frango e batata)", veg:"Seitan, feijão, cebola e batata", salada:"Cenoura e couve coração", sobremesa:"Gelatina vegetal de morango e fruta da época", aller:"seitan (glúten, soja); vinagre (sulfitos); gelatina (sulfitos)"},
+  {sopa:"Sopa de espinafres", medit:"Massada de peixes (pescada, salmão e potas) com macarrão", veg:"Tofu mexido com cogumelos, curgete, pimento, feijão verde, cenoura e macarrão", salada:"Brócolos e couve flor", sobremesa:"Fruta da época", aller:"pescada; salmão; pota; massa (glúten); tofu (soja); cogumelos (sulfitos); vinagre (sulfitos)"},
+  {sopa:"Sopa de lentilhas", medit:"Hambúrguer de quinoa e espinafres com arroz de cenoura", veg:"Hambúrguer de quinoa e espinafres com arroz de cenoura", salada:"Tomate, alface e milho", sobremesa:"Fruta da época", aller:"hambúrguer de quinoa e espinafres (glúten, soja); vinagre (sulfitos)"}
+]},
+{ start:"2026-09-28", days:[
+  {sopa:"Sopa de couve coração e cenoura", medit:"Arroz de peixe (pescada, salmão e pota)", veg:"Arroz com cogumelos (arroz, cogumelos, cenoura, ervilha e alho francês)", salada:"Alface, couve roxa e cenoura", sobremesa:"Fruta da época", aller:"pescada; salmão; pota; cogumelos (sulfitos); vinagre (sulfitos)"},
+  {sopa:"Sopa de feijão branco", medit:"Jardineira de peru (peru, batata, cenoura, ervilha e feijão verde)", veg:"Jardineira de tofu (tofu, batata, cenoura, brócolos, ervilha e feijão verde)", salada:"Cenoura, ervilha e feijão verde", sobremesa:"Fruta da época", aller:"tofu (soja); vinagre (sulfitos)"},
+  {sopa:"Sopa de alho francês", medit:"Medalhões de pescada panados no forno com molho de cenoura, arroz de ervilhas", veg:"Lentilhas estufadas com cenoura, curgete, pimento e cebola e arroz de ervilhas", salada:"Brócolos e couve flor", sobremesa:"Fruta da época", aller:"pescada; vinagre (sulfitos)"},
+  {sopa:"Sopa de feijão verde e abóbora", medit:"Carne de porco assada com massa esparguete", veg:"Lasanha de legumes", salada:"Tomate, beterraba e pepino", sobremesa:"Fruta da época", aller:"massa (glúten); lasanha [placas de lasanha (glúten)]; vinagre (sulfitos)"},
+  {sopa:"Sopa de nabo", medit:"Lombo de salmão grelhado com batata", veg:"Filete de seitan no grelhador com batata e couve flor", salada:"Macedónia de legumes (cenoura, ervilha e feijão verde)", sobremesa:"Fruta da época", aller:"salmão; seitan (glúten, soja); vinagre (sulfitos)"}
+]}
+];
+
+function fromYMD(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function toYMD(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function stripTime(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function newId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+
+function findMenu(date){
+  const weekday = date.getDay();
+  if(weekday===0 || weekday===6) return {weekend:true};
+  const dow = weekday-1;
+  for(const w of WEEKS){
+    const start = fromYMD(w.start);
+    const diff = Math.round((stripTime(date)-stripTime(start))/86400000);
+    if(diff>=0 && diff<5) return {day:w.days[dow], dow};
+  }
+  return {noData:true};
+}
+
+function renderEmenta(date){
+  const el = document.getElementById('ementaContent');
+  const res = findMenu(date);
+  const dateLabel = `${date.getDate()} de ${MESES[date.getMonth()]}`;
+  if(res.weekend){
+    el.innerHTML = `<div class="daycard"><div class="empty"><div class="big">Não há escola! 😁</div>fim de semana — ${dateLabel}</div></div>`;
+    return;
+  }
+  if(res.noData){
+    el.innerHTML = `<div class="daycard"><div class="empty"><div class="big">Ainda sem ementa</div>a lista atual só chega até 2 de outubro</div></div>`;
+    return;
+  }
+  const d = res.day;
+  el.innerHTML = `
+    <div class="daycard">
+      <div class="daylabel">${DIAS[res.dow]}-feira</div>
+      <div class="daytitle">${DIAS[res.dow]}</div>
+      <div class="daydate">${dateLabel}</div>
+      <div class="dish"><div class="dot sopa"></div><div class="dish-body"><div class="dish-kind">Sopa</div><div class="dish-name">${d.sopa}</div></div></div>
+      <div class="dish"><div class="dot medit"></div><div class="dish-body"><div class="dish-kind">Mediterrânica</div><div class="dish-name">${d.medit}</div></div></div>
+      <div class="dish"><div class="dot veg"></div><div class="dish-body"><div class="dish-kind">Vegetariana</div><div class="dish-name">${d.veg}</div></div></div>
+      <div class="dish"><div class="dot salada"></div><div class="dish-body"><div class="dish-kind">Salada</div><div class="dish-name">${d.salada}</div></div></div>
+      <div class="dish"><div class="dot sobremesa"></div><div class="dish-body"><div class="dish-kind">Sobremesa</div><div class="dish-name">${d.sobremesa}</div></div></div>
+      <div class="aller"><b>Alergénios:</b> ${d.aller}</div>
+    </div>`;
+}
+const btnHoje = document.getElementById('btnHoje');
+const btnAmanha = document.getElementById('btnAmanha');
+function setEmentaActive(which){
+  const today = new Date();
+  const target = new Date(today);
+  if(which==='amanha') target.setDate(today.getDate()+1);
+  renderEmenta(target);
+  btnHoje.classList.toggle('active', which==='hoje');
+  btnAmanha.classList.toggle('active', which==='amanha');
+}
+btnHoje.addEventListener('click', ()=>setEmentaActive('hoje'));
+btnAmanha.addEventListener('click', ()=>setEmentaActive('amanha'));
+setEmentaActive('amanha');
+
+// aviso: a ementa carregada só cobre até ao fim da última semana da lista
+(function checkEmentaFresh(){
+  const last = WEEKS[WEEKS.length-1];
+  const lastFriday = fromYMD(last.start);
+  lastFriday.setDate(lastFriday.getDate()+4);
+  const today = stripTime(new Date());
+  const daysLeft = Math.round((lastFriday-today)/86400000);
+  const warn = document.getElementById('ementaWarn');
+  if(daysLeft < 3){
+    warn.classList.add('show');
+    warn.textContent = daysLeft < 0
+      ? `A ementa carregada só ia até ${lastFriday.getDate()} de ${MESES[lastFriday.getMonth()]} — pede a folha nova à escola e manda-ma para eu atualizar.`
+      : `A ementa carregada só cobre até ${lastFriday.getDate()} de ${MESES[lastFriday.getMonth()]} — vale a pena ires pedindo a folha do mês seguinte.`;
+  }
+})();
+
+// tabs
+const tabs = { Ementa: tabEmenta, Horario: document.getElementById('tabHorario'), Agenda: document.getElementById('tabAgenda'), Anos: document.getElementById('tabAnos') };
+const panels = { Ementa: document.getElementById('panelEmenta'), Horario: document.getElementById('panelHorario'), Agenda: document.getElementById('panelAgenda'), Anos: document.getElementById('panelAnos') };
+function selectTab(name){
+  Object.keys(tabs).forEach(k=>{
+    tabs[k].classList.toggle('active', k===name);
+    panels[k].classList.toggle('active', k===name);
+  });
+}
+Object.keys(tabs).forEach(name=> tabs[name].addEventListener('click', ()=>selectTab(name)) );
+
+// ============================================================
+// LIGAÇÃO AO SUPABASE — substitui a "db" que antes vinha do Claude.
+// Preenche estes dois valores com os do TEU projeto Supabase
+// (Project Settings → API → Project URL / anon public key).
+// ============================================================
+const SUPABASE_URL = 'COLA_AQUI_O_TEU_PROJECT_URL';
+const SUPABASE_ANON_KEY = 'COLA_AQUI_A_TUA_ANON_KEY';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Sem login nenhum, toda a gente com o link pode editar — por isso canWrite é sempre true.
+let canWrite = true;
+
+// Adaptador: dá ao resto do código (que já estava escrito contra db.collection()/db.doc())
+// exatamente a mesma forma de chamar, mas por baixo fala com o Supabase em vez do Claude.
+function collectionRef(table){
+  function afterWrite(res){ if(res.error) throw res.error; return res; }
+  return {
+    orderBy(field){
+      return {
+        onSnapshot(onData, onError){
+          async function load(){
+            const { data, error } = await sb.from(table).select('*').order(field);
+            if(error){ onError && onError(error); return; }
+            onData({ docs: (data||[]).map(row => ({ id: row.id, data: ()=>row })) });
+          }
+          load();
+          sb.channel('rt-'+table)
+            .on('postgres_changes', { event:'*', schema:'public', table }, load)
+            .subscribe();
+        }
+      };
+    },
+    add: (body)=> sb.from(table).insert(body).then(afterWrite),
+    doc(id){
+      return {
+        update: (body)=> sb.from(table).update(body).eq('id', id).then(afterWrite),
+        delete: ()=> sb.from(table).delete().eq('id', id).then(afterWrite)
+      };
+    }
+  };
+}
+function docRef(path){
+  const [table, id] = path.split('/');
+  return {
+    get: async ()=>{
+      const { data, error } = await sb.from(table).select('*').eq('id', id).maybeSingle();
+      if(error) throw error;
+      return { exists: !!data, data: ()=> data || {} };
+    },
+    set: async (body)=>{
+      const { error } = await sb.from(table).upsert({ id, ...body });
+      if(error) throw error;
+    },
+    onSnapshot(onData, onError){
+      async function load(){
+        try {
+          const { data, error } = await sb.from(table).select('*').eq('id', id).maybeSingle();
+          if(error) throw error;
+          onData({ exists: !!data, data: ()=> data || {} });
+        } catch(e){ onError && onError(e); }
+      }
+      load();
+      sb.channel('rt-'+table)
+        .on('postgres_changes', { event:'*', schema:'public', table }, load)
+        .subscribe();
+    }
+  };
+}
+const db = { collection: collectionRef, doc: docRef };
+
+/* ---------------- AGENDA (eventos) ---------------- */
+const CATEGORIES = {
+  hoquei_treino: { label:'Treino hóquei', color:'#5c7a5e' },
+  hoquei_jogo:   { label:'Jogo hóquei',   color:'#e0653f' },
+  bateria:       { label:'Bateria',       color:'#e0a63a' },
+  teste:         { label:'Teste',         color:'#1c2b3a' },
+  trabalho:      { label:'Trabalho',      color:'#3d7a8c' },
+  outro:         { label:'Outro',         color:'#6b7684' }
+};
+const agendaStatus = document.getElementById('agendaStatus');
+const addBtn = document.getElementById('addBtn');
+const formCard = document.getElementById('formCard');
+const catRow = document.getElementById('catRow');
+const eventsList = document.getElementById('eventsList');
+const fTitle = document.getElementById('fTitle');
+const fDate = document.getElementById('fDate');
+const fStart = document.getElementById('fStart');
+const fEnd = document.getElementById('fEnd');
+const fNotes = document.getElementById('fNotes');
+const formErr = document.getElementById('formErr');
+const fSave = document.getElementById('fSave');
+const fCancel = document.getElementById('fCancel');
+const fDelete = document.getElementById('fDelete');
+let editingEventId = null, selectedCat = 'outro';
+let allEvents = [];
+
+Object.entries(CATEGORIES).forEach(([key, c])=>{
+  const b = document.createElement('button');
+  b.type='button'; b.className='cat-chip'; b.textContent=c.label; b.dataset.cat=key;
+  b.addEventListener('click', ()=>selectCat(key));
+  catRow.appendChild(b);
+});
+function selectCat(key){
+  selectedCat = key;
+  [...catRow.children].forEach(b=>{
+    const isSel = b.dataset.cat===key;
+    b.classList.toggle('selected', isSel);
+    b.style.background = isSel ? CATEGORIES[key].color : 'transparent';
+    b.style.borderColor = isSel ? CATEGORIES[key].color : '';
+  });
+}
+function openForm(prefill){
+  formErr.style.display='none';
+  if(prefill){
+    editingEventId = prefill.id;
+    selectCat(prefill.category || 'outro');
+    fTitle.value = prefill.title || '';
+    fDate.value = prefill.date || '';
+    fStart.value = prefill.startTime || '';
+    fEnd.value = prefill.endTime || '';
+    fNotes.value = prefill.notes || '';
+    fDelete.style.display = 'block';
+  } else {
+    editingEventId = null;
+    selectCat('outro');
+    fTitle.value = ''; fNotes.value = ''; fStart.value=''; fEnd.value='';
+    const t = new Date(); t.setDate(t.getDate()+1);
+    fDate.value = toYMD(t);
+    fDelete.style.display = 'none';
+  }
+  formCard.classList.add('open');
+  formCard.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function closeForm(){ formCard.classList.remove('open'); editingEventId = null; }
+addBtn.addEventListener('click', ()=>openForm(null));
+fCancel.addEventListener('click', closeForm);
+fSave.addEventListener('click', async ()=>{
+  const title = fTitle.value.trim();
+  const date = fDate.value;
+  if(!title){ formErr.textContent='Falta o título.'; formErr.style.display='block'; return; }
+  if(!date){ formErr.textContent='Falta a data.'; formErr.style.display='block'; return; }
+  const body = { category: selectedCat, title, date, startTime: fStart.value||'', endTime: fEnd.value||'', notes: fNotes.value.trim() };
+  fSave.disabled = true;
+  try {
+    if(editingEventId){ await db.collection('events').doc(editingEventId).update(body); }
+    else { body.createdAt = new Date().toISOString(); await db.collection('events').add(body); }
+    closeForm();
+  } catch(e){
+    if(e && e.code === 'invalid_argument'){ canWrite = false; renderAgendaStatus(); formErr.textContent='Não tens permissão para editar.'; }
+    else { formErr.textContent='Não foi possível guardar. Tenta outra vez.'; }
+    formErr.style.display='block';
+  } finally { fSave.disabled = false; }
+});
+fDelete.addEventListener('click', async ()=>{
+  if(!editingEventId) return;
+  fDelete.disabled = true;
+  try { await db.collection('events').doc(editingEventId).delete(); closeForm(); }
+  catch(e){ formErr.textContent='Não foi possível apagar.'; formErr.style.display='block'; }
+  finally { fDelete.disabled = false; }
+});
+function formatWhen(ev){
+  const d = fromYMD(ev.date);
+  const label = `${DIAS_CURTO[d.getDay()]}, ${d.getDate()} ${MESES[d.getMonth()]}`;
+  if(ev.startTime && ev.endTime) return `${label} · ${ev.startTime}–${ev.endTime}`;
+  if(ev.startTime) return `${label} · ${ev.startTime}`;
+  return label;
+}
+let showArchive = false;
+function renderEvents(){
+  const todayStr = toYMD(new Date());
+  const upcoming = allEvents.filter(e=>e.date >= todayStr).sort((a,b)=> a.date===b.date ? (a.startTime||'').localeCompare(b.startTime||'') : a.date.localeCompare(b.date));
+  const archived = allEvents.filter(e=>e.date < todayStr).sort((a,b)=> b.date.localeCompare(a.date));
+  let html = '';
+  if(upcoming.length === 0){ html += `<div class="empty"><div class="big">Sem eventos</div>adiciona o primeiro treino, aula ou teste</div>`; }
+  else { html += `<div class="group-label">Próximos</div>` + upcoming.map(eventCardHtml).join(''); }
+  if(archived.length){
+    html += `<button class="past-toggle" id="archiveToggle">${showArchive ? 'Ocultar arquivo' : `Ver arquivo (${archived.length})`}</button>`;
+    if(showArchive) html += `<div class="group-label">Arquivo</div>` + archived.map(eventCardHtml).join('');
+  }
+  eventsList.innerHTML = html;
+  const at = document.getElementById('archiveToggle');
+  if(at) at.addEventListener('click', ()=>{ showArchive = !showArchive; renderEvents(); });
+  if(canWrite){
+    eventsList.querySelectorAll('.ev-card').forEach(card=>{
+      card.addEventListener('click', ()=>{ const ev = allEvents.find(e=>e.id===card.dataset.id); if(ev) openForm(ev); });
+    });
+  }
+  checkHoqueiFresh();
+}
+function eventCardHtml(ev){
+  const cat = CATEGORIES[ev.category] || CATEGORIES.outro;
+  return `<div class="ev-card${canWrite?' editable':''}" data-id="${ev.id}">
+    <div class="ev-bar" style="background:${cat.color}"></div>
+    <div class="ev-body">
+      <div class="ev-cat" style="color:${cat.color}">${cat.label}</div>
+      <div class="ev-title">${escapeHtml(ev.title)}</div>
+      <div class="ev-when">${formatWhen(ev)}</div>
+      ${ev.notes ? `<div class="ev-notes">${escapeHtml(ev.notes)}</div>` : ''}
+    </div>
+  </div>`;
+}
+function renderAgendaStatus(){
+  if(!db){ agendaStatus.textContent = 'A agenda partilhada só funciona aberta a partir do Claude, com sessão iniciada.'; addBtn.style.display='none'; return; }
+  addBtn.style.display = canWrite ? 'flex' : 'none';
+  agendaStatus.textContent = canWrite ? 'Visível e editável por quem tem acesso a esta página.' : 'Estás a ver em modo leitura — pede para seres convidado como colaborador para editar.';
+}
+function checkHoqueiFresh(){
+  const warn = document.getElementById('hoqueiWarn');
+  const today = new Date();
+  const dow = today.getDay(); // 0 dom .. 6 sab
+  if(dow === 0){ warn.classList.remove('show'); return; } // domingo: é o próprio dia do anúncio
+  const monday = new Date(today); monday.setDate(today.getDate() - (dow===0?6:dow-1));
+  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+  const mondayStr = toYMD(monday), sundayStr = toYMD(sunday);
+  const hasThisWeek = allEvents.some(e => (e.category==='hoquei_treino' || e.category==='hoquei_jogo') && e.date >= mondayStr && e.date <= sundayStr);
+  if(!hasThisWeek){
+    warn.classList.add('show');
+    warn.textContent = 'Ainda sem treinos/jogos de hóquei marcados para esta semana — o clube costuma anunciar ao domingo. Vale a pena confirmar.';
+  } else {
+    warn.classList.remove('show');
+  }
+}
+function subscribeEvents(){
+  db.collection('events').orderBy('date').onSnapshot(
+    (snap)=>{ allEvents = snap.docs.map(d=>({id:d.id, ...d.data()})); renderEvents(); },
+    ()=>{ agendaStatus.textContent = 'Não foi possível carregar a agenda partilhada.'; }
+  );
+}
+
+/* ---------------- HORARIO ---------------- */
+const horarioStatus = document.getElementById('horarioStatus');
+const addHorarioBtn = document.getElementById('addHorarioBtn');
+const horarioForm = document.getElementById('horarioForm');
+const horarioList = document.getElementById('horarioList');
+const hDay = document.getElementById('hDay');
+const hStart = document.getElementById('hStart');
+const hEnd = document.getElementById('hEnd');
+const hSubject = document.getElementById('hSubject');
+const hErr = document.getElementById('hErr');
+const hSave = document.getElementById('hSave');
+const hCancel = document.getElementById('hCancel');
+const hDelete = document.getElementById('hDelete');
+let slots = [];
+let editingSlotId = null;
+
+function openHorarioForm(prefill){
+  hErr.style.display='none';
+  if(prefill){
+    editingSlotId = prefill.id;
+    hDay.value = prefill.day; hStart.value = prefill.start; hEnd.value = prefill.end; hSubject.value = prefill.subject;
+    hDelete.style.display = 'block';
+  } else {
+    editingSlotId = null;
+    hDay.value = 'Segunda'; hStart.value=''; hEnd.value=''; hSubject.value='';
+    hDelete.style.display = 'none';
+  }
+  horarioForm.classList.add('open');
+  horarioForm.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function closeHorarioForm(){ horarioForm.classList.remove('open'); editingSlotId = null; }
+addHorarioBtn.addEventListener('click', ()=>openHorarioForm(null));
+hCancel.addEventListener('click', closeHorarioForm);
+hSave.addEventListener('click', async ()=>{
+  const subject = hSubject.value.trim();
+  if(!subject){ hErr.textContent='Falta a disciplina.'; hErr.style.display='block'; return; }
+  if(!hStart.value || !hEnd.value){ hErr.textContent='Falta a hora.'; hErr.style.display='block'; return; }
+  hSave.disabled = true;
+  try {
+    const fresh = await db.doc('schedule/main').get();
+    let current = fresh.exists ? (fresh.data().slots || []) : [];
+    if(editingSlotId){
+      current = current.map(s => s.id===editingSlotId ? { ...s, day:hDay.value, start:hStart.value, end:hEnd.value, subject } : s);
+    } else {
+      current.push({ id:newId(), day:hDay.value, start:hStart.value, end:hEnd.value, subject });
+    }
+    await db.doc('schedule/main').set({ slots: current });
+    closeHorarioForm();
+  } catch(e){
+    if(e && e.code === 'invalid_argument'){ canWrite = false; renderHorarioStatus(); hErr.textContent='Não tens permissão para editar.'; }
+    else { hErr.textContent='Não foi possível guardar.'; }
+    hErr.style.display='block';
+  } finally { hSave.disabled = false; }
+});
+hDelete.addEventListener('click', async ()=>{
+  if(!editingSlotId) return;
+  hDelete.disabled = true;
+  try {
+    const fresh = await db.doc('schedule/main').get();
+    let current = fresh.exists ? (fresh.data().slots || []) : [];
+    current = current.filter(s=>s.id!==editingSlotId);
+    await db.doc('schedule/main').set({ slots: current });
+    closeHorarioForm();
+  } catch(e){ hErr.textContent='Não foi possível apagar.'; hErr.style.display='block'; }
+  finally { hDelete.disabled = false; }
+});
+function renderHorario(){
+  if(slots.length === 0){ horarioList.innerHTML = `<div class="empty"><div class="big">Sem horário</div>adiciona a primeira aula fixa</div>`; return; }
+  let html = '';
+  DIAS.forEach(day=>{
+    const daySlots = slots.filter(s=>s.day===day).sort((a,b)=>a.start.localeCompare(b.start));
+    if(!daySlots.length) return;
+    html += `<div class="group-label">${day}-feira</div>`;
+    html += daySlots.map(s=>`
+      <div class="ev-card${canWrite?' editable':''}" data-id="${s.id}">
+        <div class="ev-bar" style="background:var(--teal)"></div>
+        <div class="ev-body">
+          <div class="ev-title">${escapeHtml(s.subject)}</div>
+          <div class="ev-when">${s.start}–${s.end}</div>
+        </div>
+      </div>`).join('');
+  });
+  horarioList.innerHTML = html;
+  if(canWrite){
+    horarioList.querySelectorAll('.ev-card').forEach(card=>{
+      card.addEventListener('click', ()=>{ const s = slots.find(x=>x.id===card.dataset.id); if(s) openHorarioForm(s); });
+    });
+  }
+}
+function renderHorarioStatus(){
+  if(!db){ horarioStatus.textContent = 'O horário partilhado só funciona aberto a partir do Claude, com sessão iniciada.'; addHorarioBtn.style.display='none'; return; }
+  addHorarioBtn.style.display = canWrite ? 'flex' : 'none';
+  horarioStatus.textContent = canWrite ? 'Horário fixo semanal — edita quando mudar.' : 'Modo leitura.';
+}
+function subscribeHorario(){
+  db.doc('schedule/main').onSnapshot(
+    (snap)=>{ slots = snap.exists ? (snap.data().slots || []) : []; renderHorario(); },
+    ()=>{ horarioStatus.textContent = 'Não foi possível carregar o horário.'; }
+  );
+}
+
+/* ---------------- ANIVERSARIOS ---------------- */
+const anosStatus = document.getElementById('anosStatus');
+const addAnoBtn = document.getElementById('addAnoBtn');
+const anoForm = document.getElementById('anoForm');
+const anosList = document.getElementById('anosList');
+const aName = document.getElementById('aName');
+const aBirth = document.getElementById('aBirth');
+const aParty = document.getElementById('aParty');
+const aRsvp = document.getElementById('aRsvp');
+const aNotes = document.getElementById('aNotes');
+const aResponded = document.getElementById('aResponded');
+const aErr = document.getElementById('aErr');
+const aSave = document.getElementById('aSave');
+const aCancel = document.getElementById('aCancel');
+const aDelete = document.getElementById('aDelete');
+let allBirthdays = [];
+let editingAnoId = null;
+
+function openAnoForm(prefill){
+  aErr.style.display='none';
+  if(prefill){
+    editingAnoId = prefill.id;
+    aName.value = prefill.name || ''; aBirth.value = prefill.birthDate || ''; aParty.value = prefill.partyDate || ''; aRsvp.value = prefill.rsvpBy || '';
+    aNotes.value = prefill.notes || ''; aResponded.checked = !!prefill.responded;
+    aDelete.style.display = 'block';
+  } else {
+    editingAnoId = null;
+    aName.value=''; aBirth.value=''; aParty.value=''; aRsvp.value=''; aNotes.value=''; aResponded.checked=false;
+    aDelete.style.display = 'none';
+  }
+  anoForm.classList.add('open');
+  anoForm.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function closeAnoForm(){ anoForm.classList.remove('open'); editingAnoId = null; }
+addAnoBtn.addEventListener('click', ()=>openAnoForm(null));
+aCancel.addEventListener('click', closeAnoForm);
+aSave.addEventListener('click', async ()=>{
+  const name = aName.value.trim();
+  if(!name){ aErr.textContent='Falta o nome.'; aErr.style.display='block'; return; }
+  if(!aBirth.value){ aErr.textContent='Falta a data de nascimento.'; aErr.style.display='block'; return; }
+  const body = { name, birthDate: aBirth.value, partyDate: aParty.value||'', rsvpBy: aRsvp.value||'', notes: aNotes.value.trim(), responded: aResponded.checked };
+  aSave.disabled = true;
+  try {
+    if(editingAnoId){ await db.collection('birthdays').doc(editingAnoId).update(body); }
+    else { body.createdAt = new Date().toISOString(); await db.collection('birthdays').add(body); }
+    closeAnoForm();
+  } catch(e){
+    if(e && e.code === 'invalid_argument'){ canWrite = false; renderAnosStatus(); aErr.textContent='Não tens permissão para editar.'; }
+    else { aErr.textContent='Não foi possível guardar.'; }
+    aErr.style.display='block';
+  } finally { aSave.disabled = false; }
+});
+aDelete.addEventListener('click', async ()=>{
+  if(!editingAnoId) return;
+  aDelete.disabled = true;
+  try { await db.collection('birthdays').doc(editingAnoId).delete(); closeAnoForm(); }
+  catch(e){ aErr.textContent='Não foi possível apagar.'; aErr.style.display='block'; }
+  finally { aDelete.disabled = false; }
+});
+let showAllAnos = false;
+function nextOccurrence(dateStr){
+  const d = fromYMD(dateStr);
+  const today = stripTime(new Date());
+  let next = new Date(today.getFullYear(), d.getMonth(), d.getDate());
+  if(next < today) next.setFullYear(today.getFullYear()+1);
+  return next;
+}
+function anoCardHtml(a, today){
+  const daysTo = Math.round((a._next - today)/86400000);
+  let bBadge = '';
+  if(daysTo===0) bBadge = `<span class="badge soon">Hoje!</span>`;
+  else if(daysTo===1) bBadge = `<span class="badge soon">Amanhã</span>`;
+  else if(daysTo<=7) bBadge = `<span class="badge soon">Esta semana</span>`;
+  let rBadge = '';
+  if(a.rsvpBy){
+    if(a.responded) rBadge = `<span class="badge done">Respondido</span>`;
+    else {
+      const daysRsvp = Math.round((fromYMD(a.rsvpBy)-today)/86400000);
+      if(daysRsvp < 0) rBadge = `<span class="badge urgent">Prazo passou</span>`;
+      else if(daysRsvp <= 3) rBadge = `<span class="badge soon">Responder até ${fromYMD(a.rsvpBy).getDate()} ${MESES[fromYMD(a.rsvpBy).getMonth()]}</span>`;
+    }
+  }
+  const partyLine = a.partyDate ? ` · festa: ${fromYMD(a.partyDate).getDate()} ${MESES[fromYMD(a.partyDate).getMonth()]}` : '';
+  const rsvpLine = a.rsvpBy ? ` · responder até ${fromYMD(a.rsvpBy).getDate()} ${MESES[fromYMD(a.rsvpBy).getMonth()]}` : '';
+  return `<div class="ev-card${canWrite?' editable':''}" data-id="${a.id}">
+    <div class="ev-bar" style="background:var(--coral)"></div>
+    <div class="ev-body">
+      <div class="ev-title">${escapeHtml(a.name)}</div>
+      <div class="ev-when">Nasceu a ${a._next.getDate()} ${MESES[a._next.getMonth()]}${partyLine}${rsvpLine}</div>
+      ${a.notes ? `<div class="ev-notes">${escapeHtml(a.notes)}</div>` : ''}
+      ${bBadge}${rBadge}
+    </div>
+  </div>`;
+}
+function renderAnos(){
+  const today = stripTime(new Date());
+  const withNext = allBirthdays.map(a => ({...a, _next: nextOccurrence(a.birthDate)}));
+  const sorted = withNext.sort((a,b)=> a._next - b._next);
+  const thisWeek = sorted.filter(a => {
+    const dBirth = Math.round((a._next-today)/86400000);
+    const birthSoon = dBirth>=0 && dBirth<=7;
+    let partySoon = false;
+    if(a.partyDate){
+      const dParty = Math.round((fromYMD(a.partyDate)-today)/86400000);
+      partySoon = dParty>=0 && dParty<=7;
+    }
+    return birthSoon || partySoon;
+  });
+
+  let html = '';
+  if(thisWeek.length){
+    html += `<div class="group-label">Esta semana</div>` + thisWeek.map(a=>anoCardHtml(a, today)).join('');
+  } else {
+    html += `<div class="empty"><div class="big">Ninguém esta semana</div>os aniversários aparecem aqui na própria semana</div>`;
+  }
+  html += `<button class="past-toggle" id="anosToggleAll">${showAllAnos ? 'Ocultar lista completa' : `Gerir todos (${sorted.length})`}</button>`;
+  if(showAllAnos){
+    html += sorted.map(a=>anoCardHtml(a, today)).join('');
+  }
+  anosList.innerHTML = html;
+
+  const t = document.getElementById('anosToggleAll');
+  if(t) t.addEventListener('click', ()=>{ showAllAnos = !showAllAnos; renderAnos(); });
+
+  if(canWrite){
+    anosList.querySelectorAll('.ev-card').forEach(card=>{
+      card.addEventListener('click', ()=>{ const a = allBirthdays.find(x=>x.id===card.dataset.id); if(a) openAnoForm(a); });
+    });
+  }
+  anosWarnUpdate(thisWeek);
+}
+function anosWarnUpdate(soon){
+  const warn = document.getElementById('anosWarn');
+  if(!soon.length){ warn.classList.remove('show'); return; }
+  warn.classList.add('show');
+  warn.textContent = 'Esta semana: ' + soon.map(a=>{
+    const daysTo = Math.round((a._next-stripTime(new Date()))/86400000);
+    const when = daysTo===0 ? 'hoje' : daysTo===1 ? 'amanhã' : `dia ${a._next.getDate()}`;
+    return `${a.name} (${when})`;
+  }).join(', ');
+}
+function renderAnosStatus(){
+  if(!db){ anosStatus.textContent = 'Só funciona aberto a partir do Claude, com sessão iniciada.'; addAnoBtn.style.display='none'; return; }
+  addAnoBtn.style.display = canWrite ? 'flex' : 'none';
+  anosStatus.textContent = canWrite ? 'Regista o convite assim que ele chegar.' : 'Modo leitura.';
+}
+function subscribeAnos(){
+  db.collection('birthdays').orderBy('partyDate').onSnapshot(
+    (snap)=>{ allBirthdays = snap.docs.map(d=>({id:d.id, ...d.data()})); renderAnos(); },
+    ()=>{ anosStatus.textContent = 'Não foi possível carregar.'; }
+  );
+}
+
+renderAgendaStatus(); renderHorarioStatus(); renderAnosStatus();
+subscribeEvents(); subscribeHorario(); subscribeAnos();
+</script>
+</body>
+</html>
