@@ -226,7 +226,7 @@ footer{text-align:center;margin-top:22px;font-size:.72rem;color:var(--muted);}
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const DIAS = ["Segunda","Terça","Quarta","Quinta","Sexta"];
 const MESES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
@@ -353,10 +353,14 @@ Object.keys(tabs).forEach(name=> tabs[name].addEventListener('click', ()=>select
 // Preenche estes dois valores com os do TEU projeto Supabase
 // (Project Settings → API → Project URL / anon public key).
 // ============================================================
-const SUPABASE_URL = 'COLA_AQUI_O_TEU_PROJECT_URL';
-const SUPABASE_ANON_KEY = 'COLA_AQUI_A_TUA_ANON_KEY';
+const SUPABASE_URL = 'https://ryaxfvauwmtyqcprprmm.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_iZLpO6jZY21ma7mha4qjow_4sLgMGlT';
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let sb = null, supabaseLoadError = null;
+try {
+  if(!window.supabase || !window.supabase.createClient) throw new Error('biblioteca Supabase não carregou');
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch(e){ supabaseLoadError = e; }
 
 // Sem login nenhum, toda a gente com o link pode editar — por isso canWrite é sempre true.
 let canWrite = true;
@@ -833,7 +837,14 @@ function subscribeAnos(){
 }
 
 renderAgendaStatus(); renderHorarioStatus(); renderAnosStatus();
-subscribeEvents(); subscribeHorario(); subscribeAnos();
+if(supabaseLoadError){
+  const msg = 'Erro a carregar a ligação de dados: ' + supabaseLoadError.message;
+  document.getElementById('agendaStatus').textContent = msg;
+  document.getElementById('horarioStatus').textContent = msg;
+  document.getElementById('anosStatus').textContent = msg;
+} else {
+  subscribeEvents(); subscribeHorario(); subscribeAnos();
+}
 </script>
 </body>
 </html>
