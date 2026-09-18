@@ -110,6 +110,20 @@ header{display:flex;align-items:baseline;justify-content:space-between;margin-bo
 .tl-block .tl-subject{font-size:.86rem; font-weight:600; line-height:1.25;}
 .tl-free{position:absolute; left:8px; right:0; display:flex; align-items:center; padding-left:10px; border-radius:8px; border:1px dashed var(--line); color:var(--muted); font-size:.72rem;}
 footer{text-align:center;margin-top:22px;font-size:.72rem;color:var(--muted);}
+
+.next-up{background:var(--navy);color:var(--cream);border-radius:18px;padding:18px 20px;margin-bottom:18px;}
+.next-up .nu-label{font-size:.68rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;opacity:.65;margin-bottom:6px;}
+.next-up .nu-title{font-family:'Fraunces',serif;font-weight:600;font-size:1.2rem;line-height:1.25;}
+.next-up .nu-when{font-size:.82rem;opacity:.8;margin-top:4px;}
+.next-up.empty .nu-title{font-size:1rem; font-family:'Karla',sans-serif; font-weight:600; opacity:.8;}
+
+.day-summary{background:var(--card-bg);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:10px;}
+.day-summary .ds-label{font-size:.72rem;font-weight:600;color:var(--coral);text-transform:lowercase;margin-bottom:8px;}
+.day-summary.today .ds-label{color:var(--leaf);}
+.ds-item{display:flex;gap:10px;padding:6px 0;font-size:.86rem;}
+.ds-item .ds-dot{width:7px;height:7px;border-radius:50%;margin-top:6px;flex:none;}
+.ds-item .ds-text{flex:1;}
+.ds-item .ds-time{color:var(--muted);font-size:.76rem;}
 </style>
 </head>
 <body>
@@ -120,14 +134,25 @@ footer{text-align:center;margin-top:22px;font-size:.72rem;color:var(--muted);}
   </header>
 
   <div class="tabs">
-    <button id="tabEmenta" class="active">Ementa</button>
+    <button id="tabHoje" class="active">Hoje</button>
+    <button id="tabEmenta">Ementa</button>
     <button id="tabHorario">Horário</button>
     <button id="tabAgenda">Agenda</button>
     <button id="tabAnos">Anos</button>
   </div>
 
+  <!-- HOJE / SEMANA -->
+  <div id="panelHojeResumo" class="panel active">
+    <div class="toggle">
+      <button id="btnResumoHoje" class="active">Hoje</button>
+      <button id="btnResumoSemana">Semana</button>
+    </div>
+    <div id="aSeguirBox"></div>
+    <div id="resumoContent"></div>
+  </div>
+
   <!-- EMENTA -->
-  <div id="panelEmenta" class="panel active">
+  <div id="panelEmenta" class="panel">
     <div id="ementaWarn" class="warn-banner"></div>
     <div class="toggle">
       <button id="btnHoje">Hoje</button>
@@ -363,8 +388,8 @@ setEmentaActive('amanha');
 })();
 
 // tabs
-const tabs = { Ementa: tabEmenta, Horario: document.getElementById('tabHorario'), Agenda: document.getElementById('tabAgenda'), Anos: document.getElementById('tabAnos') };
-const panels = { Ementa: document.getElementById('panelEmenta'), Horario: document.getElementById('panelHorario'), Agenda: document.getElementById('panelAgenda'), Anos: document.getElementById('panelAnos') };
+const tabs = { Hoje: document.getElementById('tabHoje'), Ementa: tabEmenta, Horario: document.getElementById('tabHorario'), Agenda: document.getElementById('tabAgenda'), Anos: document.getElementById('tabAnos') };
+const panels = { Hoje: document.getElementById('panelHojeResumo'), Ementa: document.getElementById('panelEmenta'), Horario: document.getElementById('panelHorario'), Agenda: document.getElementById('panelAgenda'), Anos: document.getElementById('panelAnos') };
 function selectTab(name){
   Object.keys(tabs).forEach(k=>{
     tabs[k].classList.toggle('active', k===name);
@@ -602,7 +627,7 @@ function checkHoqueiFresh(){
 }
 function subscribeEvents(){
   db.collection('events').orderBy('date').onSnapshot(
-    (snap)=>{ allEvents = snap.docs.map(d=>({id:d.id, ...d.data()})); renderEvents(); },
+    (snap)=>{ allEvents = snap.docs.map(d=>({id:d.id, ...d.data()})); renderEvents(); renderResumo(); },
     ()=>{ agendaStatus.textContent = 'Não foi possível carregar a agenda partilhada.'; }
   );
 }
@@ -738,7 +763,7 @@ function renderHorarioStatus(){
 }
 function subscribeHorario(){
   db.doc('schedule/main').onSnapshot(
-    (snap)=>{ slots = snap.exists ? (snap.data().slots || []) : []; renderHorario(); },
+    (snap)=>{ slots = snap.exists ? (snap.data().slots || []) : []; renderHorario(); renderResumo(); },
     ()=>{ horarioStatus.textContent = 'Não foi possível carregar o horário.'; }
   );
 }
@@ -894,6 +919,107 @@ function subscribeAnos(){
     (snap)=>{ allBirthdays = snap.docs.map(d=>({id:d.id, ...d.data()})); renderAnos(); },
     ()=>{ anosStatus.textContent = 'Não foi possível carregar.'; }
   );
+}
+
+/* ---------------- HOJE / SEMANA (resumo do dia) ---------------- */
+const aSeguirBox = document.getElementById('aSeguirBox');
+const resumoContent = document.getElementById('resumoContent');
+const btnResumoHoje = document.getElementById('btnResumoHoje');
+const btnResumoSemana = document.getElementById('btnResumoSemana');
+let resumoView = 'hoje';
+btnResumoHoje.addEventListener('click', ()=>{ resumoView='hoje'; btnResumoHoje.classList.add('active'); btnResumoSemana.classList.remove('active'); renderResumo(); });
+btnResumoSemana.addEventListener('click', ()=>{ resumoView='semana'; btnResumoSemana.classList.add('active'); btnResumoHoje.classList.remove('active'); renderResumo(); });
+
+// Blocos de aulas do dia, juntando tempos seguidos e só separando em pausas a sério (>=25min) —
+// mesma regra usada na timeline do Horário, para as duas vistas baterem certo.
+function classBlocksForDay(dayName){
+  const daySlots = slots.filter(s=>s.day===dayName).sort((a,b)=>a.start.localeCompare(b.start));
+  const blocks = [];
+  daySlots.forEach(s=>{
+    const start = toMin(s.start), end = toMin(s.end);
+    const last = blocks[blocks.length-1];
+    if(last && start - last.endMin < 25){
+      last.end = s.end; last.endMin = Math.max(last.endMin, end);
+    } else {
+      blocks.push({ start:s.start, end:s.end, endMin:end });
+    }
+  });
+  return blocks;
+}
+
+// Junta aulas + eventos da agenda de um dia, ordenados por hora, num formato comum
+function dayAgenda(dateObj){
+  const dow = dateObj.getDay();
+  const items = [];
+  if(dow>=1 && dow<=5){
+    classBlocksForDay(DIAS[dow-1]).forEach(b=>{
+      items.push({ kind:'aulas', label:'Aulas', start:b.start, end:b.end, color:'var(--teal)' });
+    });
+  }
+  const dateStr = toYMD(dateObj);
+  allEvents.filter(e=>e.date===dateStr).forEach(e=>{
+    const cat = CATEGORIES[e.category] || CATEGORIES.outro;
+    items.push({ kind:'evento', label:e.title, start:e.startTime||'', end:e.endTime||'', color:cat.color, catLabel:cat.label });
+  });
+  items.sort((a,b)=> (a.start||'99:99').localeCompare(b.start||'99:99'));
+  return items;
+}
+
+function itemText(it){
+  if(it.kind==='aulas') return `Aulas${it.start?` · ${it.start}–${it.end}`:''}`;
+  const when = it.start ? (it.end ? ` · ${it.start}–${it.end}` : ` · ${it.start}`) : '';
+  return `${it.label}${when}`;
+}
+
+function renderNextUp(){
+  const now = new Date();
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  for(let i=0;i<8;i++){
+    const d = new Date(now); d.setDate(now.getDate()+i);
+    const items = dayAgenda(d).filter(it=>it.start);
+    for(const it of items){
+      const startMin = toMin(it.start);
+      if(i>0 || startMin > nowMin){
+        const dayLabel = i===0 ? 'hoje' : i===1 ? 'amanhã' : `${DIAS_CURTO[d.getDay()]}, ${d.getDate()} ${MESES[d.getMonth()]}`;
+        aSeguirBox.innerHTML = `<div class="next-up">
+          <div class="nu-label">A seguir</div>
+          <div class="nu-title">${it.kind==='aulas' ? 'Aulas' : escapeHtml(it.label)}</div>
+          <div class="nu-when">${dayLabel} · ${it.start}${it.end?`–${it.end}`:''}</div>
+        </div>`;
+        return;
+      }
+    }
+  }
+  aSeguirBox.innerHTML = `<div class="next-up empty"><div class="nu-label">A seguir</div><div class="nu-title">Nada marcado nos próximos dias</div></div>`;
+}
+
+function renderResumo(){
+  renderNextUp();
+  if(resumoView==='hoje'){
+    const items = dayAgenda(new Date());
+    if(items.length===0){
+      resumoContent.innerHTML = `<div class="empty"><div class="big">Dia livre</div>sem aulas nem eventos marcados para hoje</div>`;
+      return;
+    }
+    resumoContent.innerHTML = `<div class="day-summary today"><div class="ds-label">hoje</div>` +
+      items.map(it=>`<div class="ds-item"><div class="ds-dot" style="background:${it.color}"></div><div class="ds-text">${escapeHtml(itemText(it))}</div></div>`).join('') +
+      `</div>`;
+  } else {
+    let html = '';
+    for(let i=0;i<7;i++){
+      const d = new Date(); d.setDate(d.getDate()+i);
+      const items = dayAgenda(d);
+      const dayLabel = i===0 ? 'hoje' : i===1 ? 'amanhã' : `${DIAS_CURTO[d.getDay()]}-feira, ${d.getDate()} ${MESES[d.getMonth()]}`;
+      html += `<div class="day-summary${i===0?' today':''}"><div class="ds-label">${dayLabel}</div>`;
+      if(items.length===0){
+        html += `<div class="ds-item"><div class="ds-text" style="color:var(--muted)">Livre</div></div>`;
+      } else {
+        html += items.map(it=>`<div class="ds-item"><div class="ds-dot" style="background:${it.color}"></div><div class="ds-text">${escapeHtml(itemText(it))}</div></div>`).join('');
+      }
+      html += `</div>`;
+    }
+    resumoContent.innerHTML = html;
+  }
 }
 
 renderAgendaStatus(); renderHorarioStatus(); renderAnosStatus();
