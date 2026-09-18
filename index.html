@@ -102,6 +102,13 @@ header{display:flex;align-items:baseline;justify-content:space-between;margin-bo
 .badge.done{background:var(--leaf);color:#fff;}
 
 .past-toggle{background:transparent;border:none;color:var(--muted);font-size:.8rem;font-family:'Karla',sans-serif;text-decoration:underline;padding:8px 0;cursor:pointer;}
+
+.timeline{position:relative; margin-left:44px; border-left:1px solid var(--line);}
+.tl-hour{position:absolute; left:-44px; width:38px; text-align:right; font-size:.68rem; color:var(--muted); transform:translateY(-6px);}
+.tl-block{position:absolute; left:8px; right:0; background:var(--card-bg); border:1px solid var(--line); border-left:3px solid var(--teal); border-radius:8px; padding:6px 10px; overflow:hidden; cursor:pointer;}
+.tl-block .tl-time{font-size:.66rem; color:var(--muted); font-weight:600;}
+.tl-block .tl-subject{font-size:.86rem; font-weight:600; line-height:1.25;}
+.tl-free{position:absolute; left:8px; right:0; display:flex; align-items:center; padding-left:10px; border-radius:8px; border:1px dashed var(--line); color:var(--muted); font-size:.72rem;}
 footer{text-align:center;margin-top:22px;font-size:.72rem;color:var(--muted);}
 </style>
 </head>
@@ -134,6 +141,14 @@ footer{text-align:center;margin-top:22px;font-size:.72rem;color:var(--muted);}
   <div id="panelHorario" class="panel">
     <div id="horarioStatus" class="status-line"></div>
     <button id="addHorarioBtn" class="add-btn" style="display:none;">+ Adicionar aula</button>
+
+    <div class="toggle" id="dayToggle">
+      <button data-day="Segunda">Seg</button>
+      <button data-day="Terça">Ter</button>
+      <button data-day="Quarta">Qua</button>
+      <button data-day="Quinta">Qui</button>
+      <button data-day="Sexta">Sex</button>
+    </div>
 
     <div id="horarioForm" class="form-card">
       <label>Dia</label>
@@ -607,6 +622,17 @@ const hCancel = document.getElementById('hCancel');
 const hDelete = document.getElementById('hDelete');
 let slots = [];
 let editingSlotId = null;
+let selectedDay = DIAS[Math.min(Math.max(new Date().getDay()-1, 0), 4)]; // hoje, ou Segunda ao fim de semana
+
+const dayToggle = document.getElementById('dayToggle');
+[...dayToggle.children].forEach(btn=>{
+  btn.classList.toggle('active', btn.dataset.day===selectedDay);
+  btn.addEventListener('click', ()=>{
+    selectedDay = btn.dataset.day;
+    [...dayToggle.children].forEach(b=>b.classList.toggle('active', b===btn));
+    renderHorario();
+  });
+});
 
 function openHorarioForm(prefill){
   hErr.style.display='none';
@@ -616,7 +642,7 @@ function openHorarioForm(prefill){
     hDelete.style.display = 'block';
   } else {
     editingSlotId = null;
-    hDay.value = 'Segunda'; hStart.value=''; hEnd.value=''; hSubject.value='';
+    hDay.value = selectedDay; hStart.value=''; hEnd.value=''; hSubject.value='';
     hDelete.style.display = 'none';
   }
   horarioForm.classList.add('open');
@@ -658,25 +684,49 @@ hDelete.addEventListener('click', async ()=>{
   } catch(e){ hErr.textContent='Não foi possível apagar.'; hErr.style.display='block'; }
   finally { hDelete.disabled = false; }
 });
+const DAY_START = 8*60, DAY_END = 18*60+15; // 08:00–18:15, cobre o horário todo
+const PX_PER_MIN = 1.15;
+function toMin(hhmm){ const [h,m]=hhmm.split(':').map(Number); return h*60+m; }
+function fmtDur(min){
+  if(min < 60) return `${min} min`;
+  const h = Math.floor(min/60), m = min%60;
+  return m ? `${h}h${String(m).padStart(2,'0')}` : `${h}h`;
+}
 function renderHorario(){
+  const daySlots = slots.filter(s=>s.day===selectedDay).sort((a,b)=>a.start.localeCompare(b.start));
   if(slots.length === 0){ horarioList.innerHTML = `<div class="empty"><div class="big">Sem horário</div>adiciona a primeira aula fixa</div>`; return; }
-  let html = '';
-  DIAS.forEach(day=>{
-    const daySlots = slots.filter(s=>s.day===day).sort((a,b)=>a.start.localeCompare(b.start));
-    if(!daySlots.length) return;
-    html += `<div class="group-label">${day}-feira</div>`;
-    html += daySlots.map(s=>`
-      <div class="ev-card${canWrite?' editable':''}" data-id="${s.id}">
-        <div class="ev-bar" style="background:var(--teal)"></div>
-        <div class="ev-body">
-          <div class="ev-title">${escapeHtml(s.subject)}</div>
-          <div class="ev-when">${s.start}–${s.end}</div>
-        </div>
-      </div>`).join('');
+  if(daySlots.length === 0){ horarioList.innerHTML = `<div class="empty"><div class="big">Dia livre</div>sem aulas marcadas para ${selectedDay.toLowerCase()}-feira</div>`; return; }
+
+  const totalH = (DAY_END - DAY_START) * PX_PER_MIN;
+  let html = `<div class="timeline" style="height:${totalH}px">`;
+
+  for(let h = Math.ceil(DAY_START/60); h <= Math.floor(DAY_END/60); h++){
+    html += `<div class="tl-hour" style="top:${(h*60-DAY_START)*PX_PER_MIN}px">${h}:00</div>`;
+  }
+
+  let cursor = DAY_START;
+  daySlots.forEach(s=>{
+    const start = toMin(s.start), end = toMin(s.end);
+    if(start > cursor + 25){
+      const gapTop = (cursor-DAY_START)*PX_PER_MIN, gapH = (start-cursor)*PX_PER_MIN;
+      html += `<div class="tl-free" style="top:${gapTop}px; height:${gapH}px;">Livre · ${fmtDur(start-cursor)}</div>`;
+    }
+    const top = (start-DAY_START)*PX_PER_MIN, h = Math.max((end-start)*PX_PER_MIN, 30);
+    html += `<div class="tl-block" data-id="${s.id}" style="top:${top}px; height:${h}px;">
+      <div class="tl-time">${s.start}–${s.end}</div>
+      <div class="tl-subject">${escapeHtml(s.subject)}</div>
+    </div>`;
+    cursor = Math.max(cursor, end);
   });
+  if(cursor < DAY_END - 25){
+    const gapTop = (cursor-DAY_START)*PX_PER_MIN, gapH = (DAY_END-cursor)*PX_PER_MIN;
+    html += `<div class="tl-free" style="top:${gapTop}px; height:${gapH}px;">Livre · ${fmtDur(DAY_END-cursor)}</div>`;
+  }
+  html += `</div>`;
   horarioList.innerHTML = html;
+
   if(canWrite){
-    horarioList.querySelectorAll('.ev-card').forEach(card=>{
+    horarioList.querySelectorAll('.tl-block').forEach(card=>{
       card.addEventListener('click', ()=>{ const s = slots.find(x=>x.id===card.dataset.id); if(s) openHorarioForm(s); });
     });
   }
