@@ -591,7 +591,7 @@ function renderEvents(){
         <div class="ev-body">
           <div class="ev-cat" style="color:${cat.color}">${cat.label}</div>
           <div class="ev-title">${escapeHtml(primeira.title)}</div>
-          <div class="ev-when">Toda a semana · ${primeira.startTime}–${primeira.endTime} · ${showRecorrentes ? 'ocultar' : `ver as ${recorrentes.length} datas`}</div>
+          <div class="ev-when">Próxima: ${fromYMD(primeira.date).getDate()} de ${MESES[fromYMD(primeira.date).getMonth()]} às ${primeira.startTime} · ${showRecorrentes ? 'ocultar' : `ver as ${recorrentes.length} datas`}</div>
         </div>
       </div>`;
     if(showRecorrentes) html += recorrentes.map(eventCardHtml).join('');
