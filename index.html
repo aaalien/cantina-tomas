@@ -647,7 +647,7 @@ const hCancel = document.getElementById('hCancel');
 const hDelete = document.getElementById('hDelete');
 let slots = [];
 let editingSlotId = null;
-let selectedDay = DIAS[Math.min(Math.max(new Date().getDay()-1, 0), 4)]; // hoje, ou Segunda ao fim de semana
+let selectedDay = (()=>{ const dow = new Date().getDay(); return (dow===0||dow===6) ? 'Segunda' : DIAS[dow-1]; })(); // hoje, ou Segunda no fim de semana
 
 const dayToggle = document.getElementById('dayToggle');
 [...dayToggle.children].forEach(btn=>{
