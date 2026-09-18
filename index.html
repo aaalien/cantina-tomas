@@ -571,13 +571,31 @@ function formatWhen(ev){
   return label;
 }
 let showArchive = false;
+const RECORRENTES = ['bateria']; // categorias com muitas entradas semanais fixas — não poluem a lista
+let showRecorrentes = false;
 function renderEvents(){
   const todayStr = toYMD(new Date());
-  const upcoming = allEvents.filter(e=>e.date >= todayStr).sort((a,b)=> a.date===b.date ? (a.startTime||'').localeCompare(b.startTime||'') : a.date.localeCompare(b.date));
+  const upcomingAll = allEvents.filter(e=>e.date >= todayStr).sort((a,b)=> a.date===b.date ? (a.startTime||'').localeCompare(b.startTime||'') : a.date.localeCompare(b.date));
+  const upcoming = upcomingAll.filter(e=>!RECORRENTES.includes(e.category));
+  const recorrentes = upcomingAll.filter(e=>RECORRENTES.includes(e.category));
   const archived = allEvents.filter(e=>e.date < todayStr).sort((a,b)=> b.date.localeCompare(a.date));
   let html = '';
-  if(upcoming.length === 0){ html += `<div class="empty"><div class="big">Sem eventos</div>adiciona o primeiro treino, aula ou teste</div>`; }
-  else { html += `<div class="group-label">Próximos</div>` + upcoming.map(eventCardHtml).join(''); }
+  if(upcoming.length === 0 && recorrentes.length === 0){ html += `<div class="empty"><div class="big">Sem eventos</div>adiciona o primeiro treino, aula ou teste</div>`; }
+  if(upcoming.length){ html += `<div class="group-label">Próximos</div>` + upcoming.map(eventCardHtml).join(''); }
+  if(recorrentes.length){
+    const cat = CATEGORIES[recorrentes[0].category];
+    const primeira = recorrentes[0];
+    html += `<div class="group-label">Recorrentes</div>
+      <div class="ev-card" style="cursor:pointer" id="recorrentesSummary">
+        <div class="ev-bar" style="background:${cat.color}"></div>
+        <div class="ev-body">
+          <div class="ev-cat" style="color:${cat.color}">${cat.label}</div>
+          <div class="ev-title">${escapeHtml(primeira.title)}</div>
+          <div class="ev-when">Toda a semana · ${primeira.startTime}–${primeira.endTime} · ${showRecorrentes ? 'ocultar' : `ver as ${recorrentes.length} datas`}</div>
+        </div>
+      </div>`;
+    if(showRecorrentes) html += recorrentes.map(eventCardHtml).join('');
+  }
   if(archived.length){
     html += `<button class="past-toggle" id="archiveToggle">${showArchive ? 'Ocultar arquivo' : `Ver arquivo (${archived.length})`}</button>`;
     if(showArchive) html += `<div class="group-label">Arquivo</div>` + archived.map(eventCardHtml).join('');
@@ -585,8 +603,10 @@ function renderEvents(){
   eventsList.innerHTML = html;
   const at = document.getElementById('archiveToggle');
   if(at) at.addEventListener('click', ()=>{ showArchive = !showArchive; renderEvents(); });
+  const rs = document.getElementById('recorrentesSummary');
+  if(rs) rs.addEventListener('click', ()=>{ showRecorrentes = !showRecorrentes; renderEvents(); });
   if(canWrite){
-    eventsList.querySelectorAll('.ev-card').forEach(card=>{
+    eventsList.querySelectorAll('.ev-card:not(#recorrentesSummary)').forEach(card=>{
       card.addEventListener('click', ()=>{ const ev = allEvents.find(e=>e.id===card.dataset.id); if(ev) openForm(ev); });
     });
   }
