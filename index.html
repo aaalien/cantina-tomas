@@ -930,6 +930,32 @@ let resumoView = 'hoje';
 btnResumoHoje.addEventListener('click', ()=>{ resumoView='hoje'; btnResumoHoje.classList.add('active'); btnResumoSemana.classList.remove('active'); renderResumo(); });
 btnResumoSemana.addEventListener('click', ()=>{ resumoView='semana'; btnResumoSemana.classList.add('active'); btnResumoHoje.classList.remove('active'); renderResumo(); });
 
+// Feriados e interrupções letivas — afetam se aparecem "Aulas" no resumo do dia.
+// Nacionais: afetam sempre. SJM (município da escola, 11 de outubro): afeta a escola.
+// Interrupções letivas: dadas pelo João, afetam a escola. (O hóquei segue o calendário do
+// clube em Oliveira de Azeméis, à parte — por isso não é tocado aqui.)
+const FERIADOS_NACIONAIS = {
+  "2026-10-05":"Implantação da República", "2026-11-01":"Todos os Santos",
+  "2026-12-01":"Restauração da Independência", "2026-12-08":"Imaculada Conceição",
+  "2026-12-25":"Natal", "2027-01-01":"Ano Novo", "2027-03-26":"Sexta-feira Santa",
+  "2027-03-28":"Páscoa", "2027-04-25":"Dia da Liberdade", "2027-05-01":"Dia do Trabalhador",
+  "2027-05-27":"Corpo de Deus", "2027-06-10":"Dia de Portugal"
+};
+const INTERRUPCOES_LETIVAS = [
+  ["2026-11-11","2026-11-13","Interrupção letiva"],
+  ["2026-12-22","2026-12-31","Interrupção letiva (Natal)"],
+  ["2027-02-01","2027-02-05","Interrupção letiva"],
+  ["2027-02-08","2027-02-09","Interrupção letiva (Carnaval)"],
+  ["2027-03-22","2027-04-02","Interrupção letiva (Páscoa)"]
+];
+function schoolOffInfo(dateObj){
+  const s = toYMD(dateObj);
+  if(FERIADOS_NACIONAIS[s]) return FERIADOS_NACIONAIS[s];
+  if(dateObj.getMonth()===9 && dateObj.getDate()===11) return "Feriado municipal (São João da Madeira)";
+  for(const [a,b,nome] of INTERRUPCOES_LETIVAS){ if(s>=a && s<=b) return nome; }
+  return null;
+}
+
 // Blocos de aulas do dia, juntando tempos seguidos e só separando em pausas a sério (>=25min) —
 // mesma regra usada na timeline do Horário, para as duas vistas baterem certo.
 function classBlocksForDay(dayName){
@@ -951,7 +977,10 @@ function classBlocksForDay(dayName){
 function dayAgenda(dateObj){
   const dow = dateObj.getDay();
   const items = [];
-  if(dow>=1 && dow<=5){
+  const feriado = schoolOffInfo(dateObj);
+  if(feriado){
+    items.push({ kind:'feriado', label:feriado, start:'', end:'', color:'var(--mustard)' });
+  } else if(dow>=1 && dow<=5){
     classBlocksForDay(DIAS[dow-1]).forEach(b=>{
       items.push({ kind:'aulas', label:'Aulas', start:b.start, end:b.end, color:'var(--teal)' });
     });
@@ -966,6 +995,7 @@ function dayAgenda(dateObj){
 }
 
 function itemText(it){
+  if(it.kind==='feriado') return it.label;
   if(it.kind==='aulas') return `Aulas${it.start?` · ${it.start}–${it.end}`:''}`;
   const when = it.start ? (it.end ? ` · ${it.start}–${it.end}` : ` · ${it.start}`) : '';
   return `${it.label}${when}`;
